@@ -4,6 +4,10 @@ Headless, multi-tenant authentication service. Built with Rust, Axum, and Postgr
 
 Acts as the auth backend for multiple applications — similar in spirit to Clerk or Kinde, but self-hosted. Each application is an isolated tenant: users, organizations, and credentials are fully scoped per app.
 
+## Documentation
+
+- [Running in production](docs/production.md)
+
 ## How it works
 
 Every application registers with Aegis and receives a `client_id` + `client_secret`. Backend services (BFFs) authenticate all requests to Aegis using HTTP Basic auth with those credentials. Aegis never talks directly to a browser or mobile client — all calls come through the app's backend.
