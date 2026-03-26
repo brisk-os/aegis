@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "org_type", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum OrgType {
     Personal,
     Team,

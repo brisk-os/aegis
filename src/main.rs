@@ -1,3 +1,4 @@
+use anyhow::Context;
 use axum::Router;
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
@@ -14,11 +15,13 @@ mod routes;
 mod services;
 
 use config::Config;
+use services::jwt::JwtService;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: sqlx::PgPool,
     pub config: Arc<Config>,
+    pub jwt: Arc<JwtService>,
 }
 
 #[tokio::main]
@@ -42,9 +45,18 @@ async fn main() -> anyhow::Result<()> {
 
     sqlx::migrate!("./migrations").run(&db).await?;
 
+    let jwt = JwtService::new(
+        &config.jwt_private_key,
+        &config.jwt_public_key,
+        config.access_token_expiry_secs,
+        config.refresh_token_expiry_secs,
+    )
+    .context("failed to initialise JWT service — check JWT_PRIVATE_KEY and JWT_PUBLIC_KEY")?;
+
     let state = AppState {
         db,
         config: config.clone(),
+        jwt: Arc::new(jwt),
     };
 
     let protected = Router::new()

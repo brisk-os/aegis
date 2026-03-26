@@ -10,10 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    env:
-      JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
-      JWT_PUBLIC_KEY:  ${{ secrets.JWT_PUBLIC_KEY }}
-
     steps:
       - uses: actions/checkout@v4
 

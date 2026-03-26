@@ -11,7 +11,7 @@ use validator::Validate;
 use crate::{
     error::{AppError, Result},
     middleware::app_auth::AppIdentity,
-    services::{auth as auth_service, jwt::JwtService},
+    services::auth as auth_service,
     AppState,
 };
 
@@ -74,14 +74,14 @@ async fn login(
 
     let result = auth_service::login(&state.db, app.app_id, &body.email, &body.password).await?;
 
-    let jwt = make_jwt_service(&state)?;
+    let jwt = &state.jwt;
 
     let org_type_str = format!("{:?}", result.org_type).to_lowercase();
     let access_token = jwt
         .issue_access_token(result.user.id, app.app_id, result.org_id, &org_type_str, &result.role, &result.user.email)
         .map_err(AppError::Internal)?;
 
-    let (refresh_token, jti) = jwt.issue_refresh_token(result.user.id, app.app_id).map_err(AppError::Internal)?;
+    let (refresh_token, jti) = jwt.issue_refresh_token(result.user.id, app.app_id).map_err(|e| AppError::Internal(e))?;
 
     sqlx::query(
         "INSERT INTO refresh_session (id, user_id, jti, expires_at) VALUES ($1, $2, $3, NOW() + ($4 * interval '1 second'))",
@@ -101,7 +101,7 @@ async fn refresh(
     Extension(app): Extension<AppIdentity>,
     Json(body): Json<RefreshRequest>,
 ) -> Result<Json<TokenResponse>> {
-    let jwt = make_jwt_service(&state)?;
+    let jwt = &state.jwt;
 
     let token_data = jwt
         .verify_refresh_token(&body.refresh_token)
@@ -184,16 +184,6 @@ async fn logout(
     }
 
     Ok(Json(serde_json::json!({ "ok": true })))
-}
-
-fn make_jwt_service(state: &AppState) -> Result<JwtService> {
-    JwtService::new(
-        &state.config.jwt_private_key,
-        &state.config.jwt_public_key,
-        state.config.access_token_expiry_secs,
-        state.config.refresh_token_expiry_secs,
-    )
-    .map_err(AppError::Internal)
 }
 
 fn extract_jti_unverified(token: &str) -> Option<String> {
