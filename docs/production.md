@@ -133,7 +133,37 @@ Push to `main`. The `docker-build-push` workflow rebuilds and pushes `aegis-late
 
 ---
 
-## 6. Security checklist
+## 6. Troubleshooting
+
+### Container starts and immediately stops with no error shown
+
+This is almost always a missing required environment variable. The app exits before Dokploy has a chance to surface the error in the UI.
+
+**Fix:** Open the container logs in Dokploy immediately after a failed deploy. You will see a line like:
+
+```
+Error: missing required env var: DATABASE_URL
+```
+
+Check that all four required vars are set (`DATABASE_URL`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY`, `AEGIS_ADMIN_KEY`). Ensure none are empty.
+
+### `failed to initialise JWT service — check JWT_PRIVATE_KEY and JWT_PUBLIC_KEY`
+
+The private key is missing, empty, or not valid PKCS#8 format. Re-run `make keys` and paste the full base64 value from the `JWT_PRIVATE_KEY=...` line into Dokploy. Do not add quotes.
+
+### `database connection failed` or migrations fail on first boot
+
+- Check the `DATABASE_URL` is correct (host, port, user, password, database name).
+- If using a managed database, append `?sslmode=require` to the connection string.
+- Ensure the database user has permission to create tables.
+
+### Container runs but JWTs are rejected by consuming services
+
+The consuming service is likely using the wrong public key. Copy `JWT_PUBLIC_KEY` from your Dokploy environment and set the same value in the consuming service's config.
+
+---
+
+## 7. Security checklist
 
 - [ ] `AEGIS_ADMIN_KEY` is at least 32 random bytes (`openssl rand -hex 32`)
 - [ ] `JWT_PRIVATE_KEY` is stored only in Dokploy env vars — never committed to the repo
